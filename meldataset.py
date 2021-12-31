@@ -7,6 +7,7 @@ import numpy as np
 from librosa.util import normalize
 from scipy.io.wavfile import read
 from librosa.filters import mel as librosa_mel_fn
+from glob import glob
 
 MAX_WAV_VALUE = 32768.0
 
@@ -73,13 +74,9 @@ def mel_spectrogram(y, n_fft, num_mels, sampling_rate, hop_size, win_size, fmin,
 
 
 def get_dataset_filelist(a):
-    with open(a.input_training_file, 'r', encoding='utf-8') as fi:
-        training_files = [os.path.join(a.input_wavs_dir, x.split('|')[0] + '.wav')
-                          for x in fi.read().split('\n') if len(x) > 0]
+    training_files = glob('/data/unagi0/furukawa/musicnet_wav_10sec/*/*.wav')[:11000]
 
-    with open(a.input_validation_file, 'r', encoding='utf-8') as fi:
-        validation_files = [os.path.join(a.input_wavs_dir, x.split('|')[0] + '.wav')
-                            for x in fi.read().split('\n') if len(x) > 0]
+    validation_files = glob('/data/unagi0/furukawa/musicnet_wav_10sec/*/*.wav')[11000:]
     return training_files, validation_files
 
 

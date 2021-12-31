@@ -66,7 +66,7 @@ def main():
     print('Initializing Inference Process..')
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input_wavs_dir', default='test_files')
+    parser.add_argument('--input_wavs_dir', default='/data/unagi0/furukawa/musicnet_wav_10sec/19')
     parser.add_argument('--output_dir', default='generated_files')
     parser.add_argument('--checkpoint_file', required=True)
     a = parser.parse_args()
