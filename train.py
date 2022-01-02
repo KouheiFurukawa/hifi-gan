@@ -17,6 +17,7 @@ from meldataset import MelDataset, mel_spectrogram, get_dataset_filelist
 from models import Generator, MultiPeriodDiscriminator, MultiScaleDiscriminator, feature_loss, generator_loss,\
     discriminator_loss
 from utils import plot_spectrogram, scan_checkpoint, load_checkpoint, save_checkpoint
+from fairseq.models.wav2vec.wav2vec2 import ConvFeatureExtractionModel, Wav2Vec2Config
 
 torch.backends.cudnn.benchmark = True
 
@@ -30,6 +31,12 @@ def train(rank, a, h):
     device = torch.device('cuda:{:d}'.format(rank))
 
     generator = Generator(h).to(device)
+    prenet = ConvFeatureExtractionModel(
+        conv_layers=eval(Wav2Vec2Config.conv_feature_layers),
+        dropout=0.0,
+        mode=Wav2Vec2Config.extractor_mode,
+        conv_bias=Wav2Vec2Config.conv_bias,
+    ).to(device)
     mpd = MultiPeriodDiscriminator().to(device)
     msd = MultiScaleDiscriminator().to(device)
 
@@ -113,10 +120,10 @@ def train(rank, a, h):
         for i, batch in enumerate(train_loader):
             if rank == 0:
                 start_b = time.time()
-            x, y, _, y_mel = batch
-            x = torch.autograd.Variable(x.to(device, non_blocking=True))
+            _, y, _, y_mel = batch
             y = torch.autograd.Variable(y.to(device, non_blocking=True))
             y_mel = torch.autograd.Variable(y_mel.to(device, non_blocking=True))
+            x = prenet(y)
             y = y.unsqueeze(1)
 
             y_g_hat = generator(x)
@@ -190,7 +197,8 @@ def train(rank, a, h):
                     val_err_tot = 0
                     with torch.no_grad():
                         for j, batch in enumerate(validation_loader):
-                            x, y, _, y_mel = batch
+                            _, y, _, y_mel = batch
+                            x = prenet(y.to(device)).cpu()
                             y_g_hat = generator(x.to(device))
                             y_mel = torch.autograd.Variable(y_mel.to(device, non_blocking=True))
                             y_g_hat_mel = mel_spectrogram(y_g_hat.squeeze(1), h.n_fft, h.num_mels, h.sampling_rate,
@@ -234,7 +242,7 @@ def main():
     parser.add_argument('--input_mels_dir', default='ft_dataset')
     parser.add_argument('--input_training_file', default='LJSpeech-1.1/training.txt')
     parser.add_argument('--input_validation_file', default='LJSpeech-1.1/validation.txt')
-    parser.add_argument('--checkpoint_path', default='/data/unagi0/furukawa/cp_hifigan')
+    parser.add_argument('--checkpoint_path', default='/data/unagi0/furukawa/cp_hifigan/e2e')
     parser.add_argument('--config', default='')
     parser.add_argument('--training_epochs', default=3100, type=int)
     parser.add_argument('--stdout_interval', default=5, type=int)
