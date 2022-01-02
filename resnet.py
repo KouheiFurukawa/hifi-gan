@@ -6,6 +6,9 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.enc_static = ResNetSimCLR('resnet50', out_dim=128)
 
+    def forward(self, x):
+        return self.enc_static(x)
+
 class ResNetSimCLR(nn.Module):
 
     def __init__(self, base_model, out_dim):

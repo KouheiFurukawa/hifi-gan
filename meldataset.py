@@ -129,13 +129,18 @@ class MelDataset(torch.utils.data.Dataset):
                 if audio.size(1) >= self.segment_size:
                     max_audio_start = audio.size(1) - self.segment_size
                     audio_start = random.randint(0, max_audio_start)
-                    audio = audio[:, audio_start:audio_start+self.segment_size]
+                    anchor = audio[:, audio_start:audio_start+self.segment_size]
+                    audio_start = random.randint(0, max_audio_start)
+                    positive = audio[:, audio_start:audio_start+self.segment_size]
                 else:
                     audio = torch.nn.functional.pad(audio, (0, self.segment_size - audio.size(1)), 'constant')
 
-            mel = mel_spectrogram(audio, self.n_fft, self.num_mels,
+            anchor = mel_spectrogram(anchor, self.n_fft, self.num_mels,
                                   self.sampling_rate, self.hop_size, self.win_size, self.fmin, self.fmax,
                                   center=False)
+            positive = mel_spectrogram(positive, self.n_fft, self.num_mels,
+                                     self.sampling_rate, self.hop_size, self.win_size, self.fmin, self.fmax,
+                                     center=False)
         else:
             mel = np.load(
                 os.path.join(self.base_mels_path, os.path.splitext(os.path.split(filename)[-1])[0] + '.npy'))
@@ -159,7 +164,7 @@ class MelDataset(torch.utils.data.Dataset):
                                    self.sampling_rate, self.hop_size, self.win_size, self.fmin, self.fmax_loss,
                                    center=False)
 
-        return (mel.squeeze(), audio.squeeze(0), filename, mel_loss.squeeze())
+        return (anchor.squeeze(), positive.squeeze(), index)
 
     def __len__(self):
         return len(self.audio_files)
